@@ -30,10 +30,14 @@ export async function makeRequest({
   if (headers) {
     config["headers"] = headers;
   }
+  if(body){
+    config["data"] = body;
+  }
 
   // make call
   try {
     let res = await axios(config);
+    console.log(config);
     return res;
   } catch (err) {
     throw new Error(err);

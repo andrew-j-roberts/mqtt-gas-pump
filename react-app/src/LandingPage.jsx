@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import solace from "solclientjs";
-import {SolaceClient} from "./solace/solace-client";
+import {SolaceClient} from "./solace/solace-client-login";
 import { pubsubplus_config } from "./solace/pubsubplus-config";
+import {makeRequest} from "./api/HttpClient";
 
 /**
  * Styling
@@ -49,7 +50,7 @@ function LandingPage() {
   const [stations, setStations] = useState([]);
   const [btnDashboardDisabled, setButtonDashboardDisabled] = useState(true);
 
-  useEffect(() => {
+   useEffect(() => {
     let sessionId = ((Math.random() * 0xffffff) << 0).toString(16);
 
     // Initialize factory with the most recent API defaults
@@ -68,11 +69,44 @@ function LandingPage() {
           setButtonDashboardDisabled(false);
         }
       }
+
     );
     solaceclient.connectToSolace();
+    
+   
+    async function fetchData() {
+    
+    console.log(pubsubplus_config.semp_host);
+
+
+    
+    let request_object = {};
+    request_object.baseUrl=pubsubplus_config.semp_host;
+    request_object.body=JSON.stringify({"accessType":"exclusive","consumerAckPropagationEnabled":true,"deadMsgQueue":"#DEAD_MSG_QUEUE","egressEnabled":false,"eventBindCountThreshold":{"clearPercent":60,"setPercent":80},
+    "eventMsgSpoolUsageThreshold":{"clearPercent":60,"setPercent":80},"eventRejectLowPriorityMsgLimitThreshold":{"clearPercent":60,"setPercent":80},"ingressEnabled":true,"maxBindCount":1000,
+    "maxDeliveredUnackedMsgsPerFlow":10000,"maxMsgSize":10000000,"maxMsgSpoolUsage":1500,"maxRedeliveryCount":0,"maxTtl":0,"msgVpnName":pubsubplus_config.vpn,
+    "owner":pubsubplus_config.username,"permission":"consume","queueName":"gaspump-queue-"+sessionId,"rejectLowPriorityMsgEnabled":false,"rejectLowPriorityMsgLimit":0,
+    "rejectMsgToSenderOnDiscardBehavior":"when-queue-enabled","respectMsgPriorityEnabled":false,"respectTtlEnabled":false});
+    request_object.endpoint='/SEMP/v2/config/msgVpns/'+pubsubplus_config.vpn+'/queues/gaspump-queue-'+sessionId;
+    request_object.headers=[{'Content-Type': 'application/json'}];
+    request_object.method='PATCH';
+    request_object.basicAuthUsername=pubsubplus_config.semp_user;
+    request_object.basicAuthPassword=pubsubplus_config.semp_password;
+
+    let res =  await makeRequest(
+      request_object
+    ).catch((err)=>function(err){
+      console.log(err);
+    });
+
+    console.log(res);
+  };
+
+  fetchData();
 
     setSession(sessionId);
     setClient(solaceclient);
+
   }, []);
 
   return (
